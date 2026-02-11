@@ -10,11 +10,19 @@ from git import GitCommandError, Repo
 logger = logging.getLogger(__name__)
 
 
+
 def _has_working_tree_changes(repo: Repo) -> bool:
     """
     Return True if there are unstaged changes in the repo.
     """
     return repo.is_dirty(index=False, working_tree=True)
+
+
+def _has_staged_changes(repo: Repo) -> bool:
+    """
+    Return True if there are changes staged in the repo.
+    """
+    return repo.is_dirty(index=True, working_tree=False)
 
 
 def get_repo() -> Repo:
@@ -25,17 +33,11 @@ def get_repo() -> Repo:
     return Repo(search_parent_directories=True)
 
 
-def _has_staged_changes(repo: Repo) -> bool:
-    """
-    Return True if there are changed staged in the repo.
-    """
-    return repo.is_dirty(index=True, working_tree=False)
-
-
 def get_diff(repo: Repo) -> str:
     """
-    Get the diff for the repository. Prioritize staged changes, fall back to
-    working tree.
+    Return get the diff for the repository. 
+    
+    Prioritize using staged changes, fall back to working tree.
     """
     try:
         if _has_staged_changes(repo):
@@ -63,14 +65,13 @@ def commit_with_message(repo: Repo, message: str) -> None:
     try:
         if _has_staged_changes(repo):
             repo.index.commit(message)
-            logger.info("Commit successful (staged changes)!")
+            logger.info("Commit successful (staged changes)")
             return
 
         if _has_working_tree_changes(repo):
-            # Add all changes to the index.
             repo.git.add(A=True)
             repo.index.commit(message)
-            logger.info("Commit successful (working tree changes)!")
+            logger.info("Commit successful (working tree changes)")
             return
     except GitCommandError as e:
         logger.error("Error committing changes: %s", e)
